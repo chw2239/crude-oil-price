@@ -182,33 +182,22 @@ def upload_image(token: str, image_bytes: bytes) -> str:
 
 # ── 5. Feishu: send image message (reply into thread) ─────────────────────────
 
-def send_text_message(token: str, text: str):
-    payload = {
-        "msg_type": "text",
-        "content":  json.dumps({"text": text}),
-        "reply_in_thread": True,
+def send_post_message(token: str, image_key: str, title: str):
+    """
+    飛書 post（富文本）格式，在同一條訊息內包含標題文字和圖片。
+    content 結構：[[行1元素], [行2元素], ...]
+    """
+    post_content = {
+        "zh_cn": {
+            "title": title,
+            "content": [
+                [{"tag": "img", "image_key": image_key}]
+            ]
+        }
     }
-    resp = requests.post(
-        f"{FEISHU_BASE}/im/v1/messages/{FEISHU_THREAD_MESSAGE_ID}/reply",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type":  "application/json",
-        },
-        json=payload,
-        timeout=15,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("code") != 0:
-        raise RuntimeError(f"Send text error: {data}")
-    log.info(f"Text sent ✓  msg_id={data['data']['message_id']}")
-
-
-def send_image_message(token: str, image_key: str):
     payload = {
-        "receive_id": FEISHU_CHAT_ID,
-        "msg_type":   "image",
-        "content":    json.dumps({"image_key": image_key}),
+        "msg_type":        "post",
+        "content":         json.dumps(post_content),
         "reply_in_thread": True,
     }
     resp = requests.post(
@@ -241,9 +230,8 @@ def main():
     token     = get_tenant_token()
     hkt       = datetime.now(timezone(timedelta(hours=8)))
     title     = f"{hkt.strftime('%Y-%m-%d')}  Crude Oil Price Update"
-    send_text_message(token, title)
     image_key = upload_image(token, image_bytes)
-    send_image_message(token, image_key)
+    send_post_message(token, image_key, title)
 
     log.info("Done ✓")
 
