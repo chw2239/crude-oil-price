@@ -62,7 +62,7 @@ W           = 340
 H_TITLEBAR  = 34
 H_COLHDR    = 22
 ROW_H       = 28
-H_FOOTER    = 22
+H_FOOTER    = 28
 
 C_TITLE_BG  = (34,  98, 130)
 C_DARK      = (28,  28,  34)
@@ -144,7 +144,9 @@ def build_image(rows: list[dict]) -> bytes:
     draw.rectangle([0, y, W, H], fill=C_FOOTER)
     hkt      = datetime.now(timezone(timedelta(hours=8)))
     date_str = hkt.strftime("%Y.%m.%d  HKT")
-    draw.text((W // 2, y + H_FOOTER // 2), date_str, font=ft_footer, fill=C_GRAY, anchor="mm")
+    fy = y + H_FOOTER // 2
+    draw.text((10,     fy), date_str,        font=ft_footer, fill=C_GRAY, anchor="lm")
+    draw.text((W - 10, fy), "oil-price.net", font=ft_footer, fill=C_GRAY, anchor="rm")
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
