@@ -59,23 +59,22 @@ def fetch_prices() -> list[dict]:
 
 # ── 2. Render PNG ──────────────────────────────────────────────────────────────
 
-W           = 340
-H_TITLEBAR  = 34
-H_COLHDR    = 22
-ROW_H       = 28
-H_FOOTER    = 28
+W           = 242
+H_TITLEBAR  = 28
+ROW_H       = 26
+H_FOOTER    = 20
 
-C_TITLE_BG  = (34,  98, 130)
-C_DARK      = (28,  28,  34)
-C_LIGHT     = (36,  36,  44)
-C_COLHDR    = (44,  44,  56)
-C_FOOTER    = (22,  22,  28)
-C_WHITE     = (240, 240, 240)
-C_GRAY      = (140, 140, 150)
-C_GREEN     = ( 72, 199, 116)
-C_RED       = (220,  72,  72)
-
-COL = {"name": 10, "price": 192, "chg": 268}
+C_TITLE_BG  = ( 74, 102, 126)   # 深藍灰標題（原圖）
+C_ROW_DARK  = (255, 255, 255)   # 白
+C_ROW_LIGHT = (240, 244, 248)   # 極淡藍灰
+C_FOOTER_BG = (255, 255, 255)
+C_TITLE_TXT = (255, 255, 255)
+C_TEXT      = ( 30,  30,  30)
+C_GREEN     = (  0, 160,  80)
+C_RED       = (210,  50,  50)
+C_GRAY      = (100, 100, 100)
+C_SOURCE    = ( 60, 120, 190)   # 藍色連結
+C_DIVIDER   = (210, 218, 226)
 
 
 def _font(bold=False, size=12):
@@ -95,59 +94,53 @@ def _font(bold=False, size=12):
 
 
 def build_image(rows: list[dict]) -> bytes:
-    H = H_TITLEBAR + H_COLHDR + len(rows) * ROW_H + H_FOOTER
-    img  = Image.new("RGB", (W, H), C_DARK)
+    H = H_TITLEBAR + len(rows) * ROW_H + H_FOOTER
+    img  = Image.new("RGB", (W, H), (255, 255, 255))
     draw = ImageDraw.Draw(img)
 
-    ft_title  = _font(bold=True,  size=15)
-    ft_colhdr = _font(bold=False, size=9)
+    ft_title  = _font(bold=True,  size=13)
     ft_row    = _font(bold=False, size=11)
     ft_footer = _font(bold=False, size=9)
 
     # Title bar
     draw.rectangle([0, 0, W, H_TITLEBAR], fill=C_TITLE_BG)
     draw.text((W // 2, H_TITLEBAR // 2), "Commodities",
-              font=ft_title, fill=C_WHITE, anchor="mm")
-
-    # Column header
-    y = H_TITLEBAR
-    draw.rectangle([0, y, W, y + H_COLHDR], fill=C_COLHDR)
-    draw.text((COL["name"],  y + H_COLHDR // 2), "Commodity", font=ft_colhdr, fill=C_GRAY, anchor="lm")
-    draw.text((COL["price"], y + H_COLHDR // 2), "Price",     font=ft_colhdr, fill=C_GRAY, anchor="lm")
-    draw.text((COL["chg"],   y + H_COLHDR // 2), "Change",    font=ft_colhdr, fill=C_GRAY, anchor="lm")
-    y += H_COLHDR
+              font=ft_title, fill=C_TITLE_TXT, anchor="mm")
 
     # Data rows
+    y = H_TITLEBAR
     for i, row in enumerate(rows):
-        draw.rectangle([0, y, W, y + ROW_H], fill=C_DARK if i % 2 == 0 else C_LIGHT)
+        bg = C_ROW_DARK if i % 2 == 0 else C_ROW_LIGHT
+        draw.rectangle([0, y, W, y + ROW_H], fill=bg)
+        draw.line([0, y, W, y], fill=C_DIVIDER, width=1)
         cy = y + ROW_H // 2
 
-        draw.text((COL["name"], cy), row["name"], font=ft_row, fill=C_WHITE, anchor="lm")
+        draw.text((8, cy), row["name"], font=ft_row, fill=C_TEXT, anchor="lm")
 
         if row["price"] is not None:
             p   = row["price"]
-            txt = f"{p:,.0f}" if p >= 1000 else f"{p:.2f}"
-            draw.text((COL["price"], cy), txt, font=ft_row, fill=C_WHITE, anchor="lm")
+            txt = f"{p:,.2f}"
+            draw.text((150, cy), txt, font=ft_row, fill=C_TEXT, anchor="rm")
         else:
-            draw.text((COL["price"], cy), "-", font=ft_row, fill=C_GRAY, anchor="lm")
+            draw.text((150, cy), "–", font=ft_row, fill=C_GRAY, anchor="rm")
 
         if row["change_pct"] is not None:
             c    = row["change_pct"]
             col  = C_GREEN if c >= 0 else C_RED
             sign = "+" if c >= 0 else ""
-            draw.text((COL["chg"], cy), f"{sign}{c:.2f}%", font=ft_row, fill=col, anchor="lm")
+            draw.text((234, cy), f"{sign}{c:.2f}%", font=ft_row, fill=col, anchor="rm")
         else:
-            draw.text((COL["chg"], cy), "-", font=ft_row, fill=C_GRAY, anchor="lm")
+            draw.text((234, cy), "–", font=ft_row, fill=C_GRAY, anchor="rm")
 
         y += ROW_H
 
     # Footer
-    draw.rectangle([0, y, W, H], fill=C_FOOTER)
+    draw.rectangle([0, y, W, H], fill=C_FOOTER_BG)
+    draw.line([0, y, W, y], fill=C_DIVIDER, width=1)
     hkt      = datetime.now(timezone(timedelta(hours=8)))
-    date_str = hkt.strftime("%Y.%m.%d  HKT")
-    fy = y + H_FOOTER // 2
-    draw.text((10,     fy), date_str,        font=ft_footer, fill=C_GRAY, anchor="lm")
-    draw.text((W - 10, fy), "oil-price.net", font=ft_footer, fill=C_GRAY, anchor="rm")
+    fy       = y + H_FOOTER // 2
+    draw.text((8,      fy), hkt.strftime("%Y.%m.%d"), font=ft_footer, fill=C_GRAY,   anchor="lm")
+    draw.text((W - 8,  fy), "oil-price.net",          font=ft_footer, fill=C_SOURCE, anchor="rm")
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
