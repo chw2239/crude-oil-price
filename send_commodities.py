@@ -59,10 +59,10 @@ def fetch_prices() -> list[dict]:
 
 # ── 2. Render PNG ──────────────────────────────────────────────────────────────
 
-W           = 242
-H_TITLEBAR  = 28
-ROW_H       = 26
-H_FOOTER    = 20
+W           = 484
+H_TITLEBAR  = 56
+ROW_H       = 52
+H_FOOTER    = 40
 
 C_TITLE_BG  = ( 74, 102, 126)   # 深藍灰標題（原圖）
 C_ROW_DARK  = (255, 255, 255)   # 白
@@ -98,9 +98,9 @@ def build_image(rows: list[dict]) -> bytes:
     img  = Image.new("RGB", (W, H), (255, 255, 255))
     draw = ImageDraw.Draw(img)
 
-    ft_title  = _font(bold=True,  size=13)
-    ft_row    = _font(bold=False, size=11)
-    ft_footer = _font(bold=False, size=9)
+    ft_title  = _font(bold=True,  size=26)
+    ft_row    = _font(bold=False, size=22)
+    ft_footer = _font(bold=False, size=18)
 
     # Title bar
     draw.rectangle([0, 0, W, H_TITLEBAR], fill=C_TITLE_BG)
@@ -115,22 +115,22 @@ def build_image(rows: list[dict]) -> bytes:
         draw.line([0, y, W, y], fill=C_DIVIDER, width=1)
         cy = y + ROW_H // 2
 
-        draw.text((8, cy), row["name"], font=ft_row, fill=C_TEXT, anchor="lm")
+        draw.text((16, cy), row["name"], font=ft_row, fill=C_TEXT, anchor="lm")
 
         if row["price"] is not None:
             p   = row["price"]
             txt = f"{p:,.2f}"
-            draw.text((150, cy), txt, font=ft_row, fill=C_TEXT, anchor="rm")
+            draw.text((300, cy), txt, font=ft_row, fill=C_TEXT, anchor="rm")
         else:
-            draw.text((150, cy), "–", font=ft_row, fill=C_GRAY, anchor="rm")
+            draw.text((300, cy), "–", font=ft_row, fill=C_GRAY, anchor="rm")
 
         if row["change_pct"] is not None:
             c    = row["change_pct"]
             col  = C_GREEN if c >= 0 else C_RED
             sign = "+" if c >= 0 else ""
-            draw.text((234, cy), f"{sign}{c:.2f}%", font=ft_row, fill=col, anchor="rm")
+            draw.text((468, cy), f"{sign}{c:.2f}%", font=ft_row, fill=col, anchor="rm")
         else:
-            draw.text((234, cy), "–", font=ft_row, fill=C_GRAY, anchor="rm")
+            draw.text((468, cy), "–", font=ft_row, fill=C_GRAY, anchor="rm")
 
         y += ROW_H
 
@@ -139,8 +139,8 @@ def build_image(rows: list[dict]) -> bytes:
     draw.line([0, y, W, y], fill=C_DIVIDER, width=1)
     hkt      = datetime.now(timezone(timedelta(hours=8)))
     fy       = y + H_FOOTER // 2
-    draw.text((8,      fy), hkt.strftime("%Y.%m.%d"), font=ft_footer, fill=C_GRAY,   anchor="lm")
-    draw.text((W - 8,  fy), "oil-price.net",          font=ft_footer, fill=C_SOURCE, anchor="rm")
+    draw.text((16,     fy), hkt.strftime("%Y.%m.%d"), font=ft_footer, fill=C_GRAY,   anchor="lm")
+    draw.text((W - 16, fy), "oil-price.net",          font=ft_footer, fill=C_SOURCE, anchor="rm")
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
