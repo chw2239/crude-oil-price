@@ -22,10 +22,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger(__name__)
 
 # ── Config (all from GitHub Secrets / env vars) ────────────────────────────────
-FEISHU_APP_ID     = os.environ["FEISHU_APP_ID"]
-FEISHU_APP_SECRET = os.environ["FEISHU_APP_SECRET"]
-FEISHU_CHAT_ID    = os.environ["FEISHU_CHAT_ID"]   # oc_xxxxxxxxxxxxxxxx
-FEISHU_BASE       = "https://open.feishu.cn/open-apis"
+FEISHU_APP_ID            = os.environ["FEISHU_APP_ID"]
+FEISHU_APP_SECRET        = os.environ["FEISHU_APP_SECRET"]
+FEISHU_CHAT_ID           = os.environ["FEISHU_CHAT_ID"]            # oc_xxxxxxxx
+FEISHU_THREAD_MESSAGE_ID = os.environ["FEISHU_THREAD_MESSAGE_ID"]  # om_xxxxxxxx
+FEISHU_BASE              = "https://open.feishu.cn/open-apis"
 
 TICKERS = [
     ("Crude Oil",   "CL=F"),
@@ -186,19 +187,20 @@ def upload_image(token: str, image_bytes: bytes) -> str:
     log.info(f"Uploaded image → {image_key}")
     return image_key
 
-# ── 5. Feishu: send image message ─────────────────────────────────────────────
+# ── 5. Feishu: send image message (reply into thread) ─────────────────────────
 
 def send_image_message(token: str, image_key: str):
     payload = {
         "receive_id": FEISHU_CHAT_ID,
         "msg_type":   "image",
         "content":    json.dumps({"image_key": image_key}),
+        "reply_in_thread": True,
     }
     resp = requests.post(
-        f"{FEISHU_BASE}/im/v1/messages?receive_id_type=chat_id",
+        f"{FEISHU_BASE}/im/v1/messages/{FEISHU_THREAD_MESSAGE_ID}/reply",
         headers={
-            "Authorization":  f"Bearer {token}",
-            "Content-Type":   "application/json",
+            "Authorization": f"Bearer {token}",
+            "Content-Type":  "application/json",
         },
         json=payload,
         timeout=15,
