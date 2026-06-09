@@ -182,6 +182,28 @@ def upload_image(token: str, image_bytes: bytes) -> str:
 
 # ── 5. Feishu: send image message (reply into thread) ─────────────────────────
 
+def send_text_message(token: str, text: str):
+    payload = {
+        "msg_type": "text",
+        "content":  json.dumps({"text": text}),
+        "reply_in_thread": True,
+    }
+    resp = requests.post(
+        f"{FEISHU_BASE}/im/v1/messages/{FEISHU_THREAD_MESSAGE_ID}/reply",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type":  "application/json",
+        },
+        json=payload,
+        timeout=15,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("code") != 0:
+        raise RuntimeError(f"Send text error: {data}")
+    log.info(f"Text sent ✓  msg_id={data['data']['message_id']}")
+
+
 def send_image_message(token: str, image_key: str):
     payload = {
         "receive_id": FEISHU_CHAT_ID,
@@ -212,12 +234,14 @@ def main():
 
     log.info("── Render image ──")
     image_bytes = build_image(rows)
-    # Also save locally as Actions artifact
     with open("commodities.png", "wb") as f:
         f.write(image_bytes)
 
     log.info("── Feishu send ──")
     token     = get_tenant_token()
+    hkt       = datetime.now(timezone(timedelta(hours=8)))
+    title     = f"{hkt.strftime('%Y-%m-%d')}  Crude Oil Price Update"
+    send_text_message(token, title)
     image_key = upload_image(token, image_bytes)
     send_image_message(token, image_key)
 
