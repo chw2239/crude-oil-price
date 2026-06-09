@@ -3,7 +3,7 @@ name: Commodities Daily → Feishu
 on:
   schedule:
     # HKT 08:00 = UTC 00:00, 週一至週五
-    - cron: "0 0 * * 1-5"
+    - cron: "0 21 * * 1-5"
   workflow_dispatch:   # 手動觸發（測試用）
 
 jobs:
