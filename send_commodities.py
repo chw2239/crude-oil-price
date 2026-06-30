@@ -228,7 +228,7 @@ def main():
     log.info("── Feishu send ──")
     token     = get_tenant_token()
     hkt       = datetime.now(timezone(timedelta(hours=8)))
-    title     = f"{hkt.strftime('%Y-%m-%d')}  Crude Oil Price Update"
+    title     = f"Crude Oil Price Update {hkt.strftime('%Y %b %d')}"
     image_key = upload_image(token, image_bytes)
     send_post_message(token, image_key, title)
 
