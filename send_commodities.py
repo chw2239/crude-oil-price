@@ -22,11 +22,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger(__name__)
 
 # ── Config (all from GitHub Secrets / env vars) ────────────────────────────────
-FEISHU_APP_ID            = os.environ["FEISHU_APP_ID"]
-FEISHU_APP_SECRET        = os.environ["FEISHU_APP_SECRET"]
-FEISHU_CHAT_ID           = os.environ["FEISHU_CHAT_ID"]            # oc_xxxxxxxx
-FEISHU_THREAD_MESSAGE_ID = os.environ["FEISHU_THREAD_MESSAGE_ID"]  # om_xxxxxxxx
-FEISHU_BASE              = "https://open.feishu.cn/open-apis"
+FEISHU_APP_ID     = os.environ["FEISHU_APP_ID"]
+FEISHU_APP_SECRET = os.environ["FEISHU_APP_SECRET"]
+FEISHU_CHAT_ID    = os.environ["FEISHU_CHAT_ID"]   # oc_xxxxxxxx
+FEISHU_BASE       = "https://open.feishu.cn/open-apis"
 
 TICKERS = [
     ("Crude Oil",   "CL=F"),
@@ -180,12 +179,12 @@ def upload_image(token: str, image_bytes: bytes) -> str:
     log.info(f"Uploaded image → {image_key}")
     return image_key
 
-# ── 5. Feishu: send image message (reply into thread) ─────────────────────────
+# ── 5. Feishu: send image message (new message every time) ────────────────────
 
 def send_post_message(token: str, image_key: str, title: str):
     """
-    飛書 post（富文本）格式，在同一條訊息內包含標題文字和圖片。
-    content 結構：[[行1元素], [行2元素], ...]
+    飛書 post（富文本）格式，標題 + 圖片在同一條訊息。
+    每次發送都是全新的獨立訊息（不接續任何話題）。
     """
     post_content = {
         "zh_cn": {
@@ -196,12 +195,12 @@ def send_post_message(token: str, image_key: str, title: str):
         }
     }
     payload = {
-        "msg_type":        "post",
-        "content":         json.dumps(post_content),
-        "reply_in_thread": True,
+        "receive_id": FEISHU_CHAT_ID,
+        "msg_type":   "post",
+        "content":    json.dumps(post_content),
     }
     resp = requests.post(
-        f"{FEISHU_BASE}/im/v1/messages/{FEISHU_THREAD_MESSAGE_ID}/reply",
+        f"{FEISHU_BASE}/im/v1/messages?receive_id_type=chat_id",
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type":  "application/json",
