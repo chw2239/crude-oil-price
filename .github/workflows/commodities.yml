@@ -2,27 +2,27 @@ name: Commodities Daily → Feishu
 
 on:
   schedule:
-    # HKT 08:00 = UTC 00:00, 週一至週五
+    # UTC 23:00 = HKT 07:00（隔天），每天
     - cron: "0 23 * * *"
   workflow_dispatch:   # 手動觸發（測試用）
- 
+
 jobs:
   send:
     runs-on: ubuntu-latest
     timeout-minutes: 10
- 
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
- 
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
- 
+
       - name: Install dependencies
         run: pip install -r requirements.txt
- 
+
       - name: Run script
         env:
           FEISHU_APP_ID:     ${{ secrets.FEISHU_APP_ID }}
