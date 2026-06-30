@@ -5,7 +5,7 @@ on:
     # HKT 08:00 = UTC 00:00, 週一至週五
     - cron: "0 23 * * *"
   workflow_dispatch:   # 手動觸發（測試用）
-
+ 
 jobs:
   send:
     runs-on: ubuntu-latest
@@ -29,11 +29,3 @@ jobs:
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_CHAT_ID:    ${{ secrets.FEISHU_CHAT_ID }}
         run: python send_commodities.py
- 
-      - name: Upload PNG artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: commodities-${{ github.run_id }}
-          path: commodities.png
-          retention-days: 7
