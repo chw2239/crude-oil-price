@@ -28,7 +28,6 @@ jobs:
           FEISHU_APP_ID:              ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET:          ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_CHAT_ID:             ${{ secrets.FEISHU_CHAT_ID }}
-          FEISHU_THREAD_MESSAGE_ID:   ${{ secrets.FEISHU_THREAD_MESSAGE_ID }}
         run: python send_commodities.py
 
       - name: Upload PNG artifact
