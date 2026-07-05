@@ -1,0 +1,28 @@
+name: Bitable Setup (One-time)
+
+on:
+  workflow_dispatch:   # 只手動觸發，設定完成後不需要再跑
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install yfinance requests
+
+      - name: Run setup script
+        env:
+          FEISHU_APP_ID:     ${{ secrets.FEISHU_APP_ID }}
+          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+          FEISHU_CHAT_ID:    ${{ secrets.FEISHU_CHAT_ID }}
+        run: python bitable_setup.py
