@@ -18,10 +18,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger(__name__)
 
 # ── Config (all from GitHub Secrets / env vars) ────────────────────────────────
-FEISHU_APP_ID     = os.environ["FEISHU_APP_ID"]
-FEISHU_APP_SECRET = os.environ["FEISHU_APP_SECRET"]
-FEISHU_CHAT_ID    = os.environ["FEISHU_CHAT_ID"]   # oc_xxxxxxxx
-FEISHU_BASE       = "https://open.feishu.cn/open-apis"
+FEISHU_APP_ID           = os.environ["FEISHU_APP_ID"]
+FEISHU_APP_SECRET       = os.environ["FEISHU_APP_SECRET"]
+FEISHU_CHAT_ID          = os.environ["FEISHU_CHAT_ID"]            # oc_xxxxxxxx
+FEISHU_BITABLE_APP_TOKEN = os.environ["FEISHU_BITABLE_APP_TOKEN"]  # 多維表格 app_token
+FEISHU_BITABLE_TABLE_ID  = os.environ["FEISHU_BITABLE_TABLE_ID"]   # 資料表 table_id
+FEISHU_DASHBOARD_URL     = os.environ["FEISHU_DASHBOARD_URL"]      # 儀表盤網址（趨勢圖）
+FEISHU_BASE             = "https://open.feishu.cn/open-apis"
 
 TICKERS = [
     ("Crude Oil",   "原油",   "CL=F"),
@@ -73,8 +76,8 @@ def get_tenant_token() -> str:
 # ── 3. Build Feishu Interactive Card (column_set table) ────────────────────────
 
 def _row_elements(row: dict) -> list[dict]:
-    """單一商品的三欄內容：名稱 / 價格 / 漲跌（顏色化文字）"""
-    name = row["name"]
+    """單一商品的三欄內容：名稱（超連結至儀表盤）/ 價格 / 漲跌（顏色化文字）"""
+    name_link = f"[{row['name']}]({FEISHU_DASHBOARD_URL})"
 
     if row["price"] is not None:
         price_text = f"{row['price']:,.2f}"
@@ -91,7 +94,7 @@ def _row_elements(row: dict) -> list[dict]:
 
     return [
         {"tag": "column", "width": "weighted", "weight": 3,
-         "elements": [{"tag": "markdown", "content": name}]},
+         "elements": [{"tag": "markdown", "content": name_link}]},
         {"tag": "column", "width": "weighted", "weight": 2,
          "elements": [{"tag": "markdown", "content": price_text, "text_align": "right"}]},
         {"tag": "column", "width": "weighted", "weight": 2,
@@ -153,6 +156,47 @@ def send_card_message(token: str, title: str, rows: list[dict]):
         raise RuntimeError(f"Send error: {data}")
     log.info(f"Message sent ✓  msg_id={data['data']['message_id']}")
 
+# ── 5. Feishu: write today's record to Bitable ─────────────────────────────────
+
+def write_to_bitable(token: str, rows: list[dict]):
+    hkt   = datetime.now(timezone(timedelta(hours=8)))
+    ts_ms = int(hkt.replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
+
+    records = []
+    for row in rows:
+        if row["price"] is None:
+            continue
+        records.append({
+            "fields": {
+                "日期":  ts_ms,
+                "商品":  row["name"],
+                "價格":  round(row["price"], 4),
+                "漲跌%": round(row["change_pct"], 4) if row["change_pct"] is not None else 0,
+            }
+        })
+
+    if not records:
+        log.warning("No valid records to write to Bitable")
+        return
+
+    resp = requests.post(
+        f"{FEISHU_BASE}/bitable/v1/apps/{FEISHU_BITABLE_APP_TOKEN}"
+        f"/tables/{FEISHU_BITABLE_TABLE_ID}/records/batch_create",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type":  "application/json",
+        },
+        json={"records": records},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("code") != 0:
+        # 不中斷主流程，僅記錄警告（避免因表格寫入失敗而漏發群組訊息）
+        log.warning(f"Bitable write failed (non-fatal): {data}")
+    else:
+        log.info(f"Bitable write ✓  {len(records)} records")
+
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 def main():
@@ -164,6 +208,9 @@ def main():
     hkt   = datetime.now(timezone(timedelta(hours=8)))
     title = f"Commodities Daily | {hkt.strftime('%Y %b %d')}"
     send_card_message(token, title, rows)
+
+    log.info("── Bitable write ──")
+    write_to_bitable(token, rows)
 
     log.info("Done ✓")
 
